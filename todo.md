@@ -1,40 +1,19 @@
-# AI-Powered Code Review Assistant - Development Plan
+# Migration from OpenAI to Groq - TODO
 
-## Project Structure
-```
-codex/
-├── app.py                      # Main Flask application with webhook endpoint
-├── requirements.txt            # Python dependencies
-├── .env.example               # Environment variables template
-├── .gitignore                 # Git ignore file
-├── README.md                  # Setup and usage documentation
-├── config.py                  # Configuration management
-├── analyzers/
-│   ├── __init__.py
-│   ├── static_analyzer.py     # Static analysis (pylint, bandit, radon)
-│   └── llm_analyzer.py        # LLM-based analysis with LangChain
-├── github_integration/
-│   ├── __init__.py
-│   ├── webhook_handler.py     # Webhook validation and processing
-│   └── pr_commenter.py        # GitHub API for PR comments
-└── utils/
-    ├── __init__.py
-    └── helpers.py             # Utility functions
-```
+## Analysis
+- Current setup uses OpenAI GPT-4 via langchain-openai
+- Need to replace with Groq API
+- Best model for code review: **llama-3.3-70b-versatile** (1K RPM, 500K TPM, good balance of performance and limits)
 
-## Implementation Steps
-1. ✅ Create project structure and configuration files
-2. ✅ Implement Flask webhook endpoint
-3. ✅ Build static analysis engine
-4. ✅ Integrate OpenAI + LangChain for intelligent review
-5. ✅ Implement PR inline commenting
-6. ✅ Add documentation and deployment guide
+## Files to modify:
+1. ✅ requirements.txt - Replace openai/langchain-openai with groq
+2. ✅ config.py - Replace OPENAI_API_KEY with GROQ_API_KEY
+3. ✅ analyzers/llm_analyzer.py - Replace ChatOpenAI with Groq client
+4. ✅ .env.example - Update environment variable names
+5. ✅ README.md - Update documentation
 
-## Key Features
-- Automatic PR review on open/update
-- Style checking (pylint/flake8)
-- Security scanning (bandit)
-- Complexity analysis (radon)
-- LLM-powered suggestions
-- Inline PR comments
-- Auto-fix diffs for simple issues
+## Selected Model: llama-3.3-70b-versatile
+- RPM: 1000 (vs OpenAI's typical 500)
+- TPM: 500K tokens per minute
+- Good for code analysis tasks
+- Cost-effective alternative

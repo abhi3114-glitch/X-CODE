@@ -1,21 +1,16 @@
 from typing import Dict, List, Any
-from langchain_openai import ChatOpenAI
-from langchain.prompts import ChatPromptTemplate
-from langchain.schema import HumanMessage, SystemMessage
+import json
+from groq import Groq
 from config import Config
 
 class LLMAnalyzer:
-    """Uses LLM to provide intelligent code review suggestions"""
+    """Uses Groq LLM to provide intelligent code review suggestions"""
     
     def __init__(self):
-        self.llm = ChatOpenAI(
-            model="gpt-4",
-            temperature=0.3,
-            openai_api_key=Config.OPENAI_API_KEY
-        )
+        self.client = Groq(api_key=Config.GROQ_API_KEY)
+        self.model = Config.GROQ_MODEL
         
-        self.review_prompt = ChatPromptTemplate.from_messages([
-            SystemMessage(content="""You are an expert code reviewer. Analyze the provided code changes and:
+        self.system_prompt = """You are an expert code reviewer. Analyze the provided code changes and:
 1. Identify anti-patterns and code smells
 2. Suggest improvements for readability and maintainability
 3. Point out potential bugs or logic errors
@@ -35,13 +30,11 @@ Be concise and actionable. Format your response as JSON with this structure:
         }
     ],
     "overall_feedback": "General comments about the changes"
-}"""),
-            HumanMessage(content="File: {file_path}\n\nCode:\n{code}\n\nStatic Analysis Issues:\n{static_issues}")
-        ])
+}"""
     
     def analyze_code(self, file_path: str, code: str, static_issues: List[Dict]) -> Dict[str, Any]:
         """
-        Analyze code using LLM
+        Analyze code using Groq LLM
         
         Args:
             file_path: Path of the file
@@ -55,19 +48,36 @@ Be concise and actionable. Format your response as JSON with this structure:
             # Prepare static issues summary
             static_summary = self._format_static_issues(static_issues)
             
-            # Generate prompt
-            prompt = self.review_prompt.format_messages(
-                file_path=file_path,
-                code=code[:3000],  # Limit code length
-                static_issues=static_summary
-            )
+            # Prepare user message
+            user_message = f"File: {file_path}\n\nCode:\n{code[:3000]}\n\nStatic Analysis Issues:\n{static_summary}"
             
             # Get LLM response
-            response = self.llm.invoke(prompt)
+            chat_completion = self.client.chat.completions.create(
+                messages=[
+                    {
+                        "role": "system",
+                        "content": self.system_prompt
+                    },
+                    {
+                        "role": "user",
+                        "content": user_message
+                    }
+                ],
+                model=self.model,
+                temperature=0.3,
+                max_tokens=2000
+            )
             
             # Parse response
-            import json
-            result = json.loads(response.content)
+            response_content = chat_completion.choices[0].message.content
+            
+            # Extract JSON from response (handle markdown code blocks)
+            if "```json" in response_content:
+                response_content = response_content.split("```json")[1].split("```")[0].strip()
+            elif "```" in response_content:
+                response_content = response_content.split("```")[1].split("```")[0].strip()
+            
+            result = json.loads(response_content)
             
             return {
                 'issues': result.get('issues', []),
@@ -76,6 +86,7 @@ Be concise and actionable. Format your response as JSON with this structure:
             }
             
         except Exception as e:
+            print(f"LLM analysis error: {e}")
             return {
                 'issues': [],
                 'overall_feedback': f'LLM analysis failed: {str(e)}',
@@ -103,8 +114,19 @@ Original code:
 
 Generate a unified diff format fix. Be precise and minimal."""
 
-            response = self.llm.invoke([HumanMessage(content=prompt)])
-            return response.content
+            chat_completion = self.client.chat.completions.create(
+                messages=[
+                    {
+                        "role": "user",
+                        "content": prompt
+                    }
+                ],
+                model=self.model,
+                temperature=0.3,
+                max_tokens=1000
+            )
+            
+            return chat_completion.choices[0].message.content
             
         except Exception as e:
             return f"Auto-fix generation failed: {str(e)}"
@@ -132,10 +154,27 @@ List any anti-patterns found with:
 
 Format as JSON array."""
 
-            response = self.llm.invoke([HumanMessage(content=prompt)])
+            chat_completion = self.client.chat.completions.create(
+                messages=[
+                    {
+                        "role": "user",
+                        "content": prompt
+                    }
+                ],
+                model=self.model,
+                temperature=0.3,
+                max_tokens=1500
+            )
             
-            import json
-            patterns = json.loads(response.content)
+            response_content = chat_completion.choices[0].message.content
+            
+            # Extract JSON from response
+            if "```json" in response_content:
+                response_content = response_content.split("```json")[1].split("```")[0].strip()
+            elif "```" in response_content:
+                response_content = response_content.split("```")[1].split("```")[0].strip()
+            
+            patterns = json.loads(response_content)
             return patterns if isinstance(patterns, list) else []
             
         except Exception:

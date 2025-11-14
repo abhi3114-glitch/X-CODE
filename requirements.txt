@@ -12,10 +12,8 @@ flake8==7.0.0
 bandit==1.7.5
 radon==6.0.1
 
-# LLM Integration
-langchain==0.1.0
-langchain-openai==0.0.2
-openai==1.6.1
+# LLM Integration - Groq
+groq==0.11.0
 
 # Utilities
 python-dotenv==1.0.0

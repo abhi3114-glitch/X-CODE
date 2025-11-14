@@ -1,6 +1,6 @@
 # 🤖 CODEX - AI-Powered Code Review Assistant
 
-An intelligent GitHub-integrated bot that automatically reviews Pull Requests using LLMs and static analysis tools. CODEX provides inline comments with suggestions, detects anti-patterns, identifies security vulnerabilities, and offers auto-fix diffs for common issues.
+An intelligent GitHub-integrated bot that automatically reviews Pull Requests using Groq LLMs and static analysis tools. CODEX provides inline comments with suggestions, detects anti-patterns, identifies security vulnerabilities, and offers auto-fix diffs for common issues.
 
 ## ✨ Features
 
@@ -9,11 +9,12 @@ An intelligent GitHub-integrated bot that automatically reviews Pull Requests us
   - Style checking with Pylint
   - Security scanning with Bandit
   - Complexity analysis with Radon
-  - AI-powered insights with GPT-4
+  - AI-powered insights with Groq (llama-3.3-70b-versatile)
 - **Inline Comments**: Posts suggestions directly on code lines
 - **Anti-Pattern Detection**: Identifies common code smells
 - **Auto-Fix Suggestions**: Provides diff patches for simple issues
 - **Comprehensive Reports**: Summary with severity breakdown
+- **Cost-Effective**: Uses Groq API for affordable LLM inference
 
 ## 🚀 Quick Start
 
@@ -21,7 +22,7 @@ An intelligent GitHub-integrated bot that automatically reviews Pull Requests us
 
 - Python 3.8+
 - GitHub account with repository access
-- OpenAI API key
+- Groq API key (free tier available at https://console.groq.com)
 - GitHub Personal Access Token
 
 ### Installation
@@ -46,7 +47,8 @@ Edit `.env` and add your credentials:
 ```env
 GITHUB_TOKEN=your_github_personal_access_token
 GITHUB_WEBHOOK_SECRET=your_webhook_secret
-OPENAI_API_KEY=your_openai_api_key
+GROQ_API_KEY=your_groq_api_key
+GROQ_MODEL=llama-3.3-70b-versatile
 ```
 
 4. **Run the application**
@@ -67,7 +69,15 @@ The server will start on `http://localhost:5000`
    - `write:discussion` (Read and write team discussions)
 4. Copy the token to your `.env` file
 
-### 2. Configure Webhook
+### 2. Get Groq API Key
+
+1. Visit https://console.groq.com
+2. Sign up for a free account
+3. Navigate to API Keys section
+4. Create a new API key
+5. Copy the key to your `.env` file
+
+### 3. Configure Webhook
 
 1. Go to your repository → Settings → Webhooks
 2. Click "Add webhook"
@@ -78,7 +88,7 @@ The server will start on `http://localhost:5000`
    - **Events**: Select "Pull requests"
 4. Save webhook
 
-### 3. Expose Local Server (Development)
+### 4. Expose Local Server (Development)
 
 Use ngrok to expose your local server:
 ```bash
@@ -104,7 +114,7 @@ heroku create codex-review-bot
 3. **Set environment variables**
 ```bash
 heroku config:set GITHUB_TOKEN=your_token
-heroku config:set OPENAI_API_KEY=your_key
+heroku config:set GROQ_API_KEY=your_key
 heroku config:set GITHUB_WEBHOOK_SECRET=your_secret
 ```
 
@@ -210,10 +220,24 @@ Edit `config.py` or use environment variables:
 |----------|-------------|---------|
 | `GITHUB_TOKEN` | GitHub Personal Access Token | Required |
 | `GITHUB_WEBHOOK_SECRET` | Webhook secret for validation | Required |
-| `OPENAI_API_KEY` | OpenAI API key | Required |
+| `GROQ_API_KEY` | Groq API key | Required |
+| `GROQ_MODEL` | Groq model to use | llama-3.3-70b-versatile |
 | `MAX_FILES_TO_REVIEW` | Maximum files per PR | 20 |
 | `MAX_LINES_PER_FILE` | Maximum lines to analyze | 500 |
 | `ENABLE_AUTO_FIX` | Enable auto-fix suggestions | True |
+
+## 🤖 Available Groq Models
+
+CODEX uses **llama-3.3-70b-versatile** by default, which offers:
+- 1,000 requests per minute (RPM)
+- 500,000 tokens per minute (TPM)
+- Excellent code understanding and generation
+- Cost-effective alternative to GPT-4
+
+Other available models:
+- `llama-3.1-8b-instant` - Faster, lower capacity
+- `meta-llama/llama-4-maverick-17b-128e-instruct` - Balanced option
+- `qwen/qwen3-32b` - Alternative architecture
 
 ## 📊 Architecture
 
@@ -232,11 +256,11 @@ Edit `config.py` or use environment variables:
        ├──────────────┐
        ▼              ▼
 ┌─────────────┐  ┌─────────────┐
-│   Static    │  │     LLM     │
+│   Static    │  │  Groq LLM   │
 │  Analysis   │  │  Analysis   │
 │             │  │             │
-│ • Pylint    │  │ • GPT-4     │
-│ • Bandit    │  │ • LangChain │
+│ • Pylint    │  │ • Llama 3.3 │
+│ • Bandit    │  │   70B       │
 │ • Radon     │  │             │
 └──────┬──────┘  └──────┬──────┘
        │                │
@@ -277,12 +301,13 @@ MIT License - feel free to use in your projects!
 
 - **Repository**: https://github.com/abhi3114-glitch/CODEX
 - **Issues**: https://github.com/abhi3114-glitch/CODEX/issues
+- **Groq Console**: https://console.groq.com
 - **Documentation**: [GitHub Webhooks](https://docs.github.com/en/developers/webhooks-and-events/webhooks)
 
 ## 💡 Tips
 
 - **Rate Limits**: Be aware of GitHub API rate limits (5000 requests/hour)
-- **Cost Management**: Monitor OpenAI API usage
+- **Cost Management**: Groq offers generous free tier limits
 - **Security**: Never commit `.env` file with credentials
 - **Performance**: Use task queues (Celery) for production
 - **Scaling**: Consider serverless (AWS Lambda) for high traffic
@@ -295,7 +320,7 @@ MIT License - feel free to use in your projects!
 - Check server logs
 
 ### Analysis failing
-- Verify OpenAI API key
+- Verify Groq API key
 - Check file size limits
 - Review error logs
 
@@ -304,6 +329,14 @@ MIT License - feel free to use in your projects!
 - Check PR number and repository access
 - Review GitHub API rate limits
 
+## 🎉 Why Groq?
+
+- **Fast**: Ultra-low latency inference
+- **Cost-Effective**: Generous free tier
+- **Powerful**: State-of-the-art open models
+- **Reliable**: High uptime and availability
+- **Developer-Friendly**: Simple API, great docs
+
 ---
 
-**Built with ❤️ using Python, Flask, LangChain, and OpenAI GPT-4**
+**Built with ❤️ using Python, Flask, Groq, and Llama 3.3 70B**

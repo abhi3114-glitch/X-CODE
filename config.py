@@ -10,8 +10,9 @@ class Config:
     GITHUB_TOKEN = os.getenv('GITHUB_TOKEN')
     GITHUB_WEBHOOK_SECRET = os.getenv('GITHUB_WEBHOOK_SECRET')
     
-    # OpenAI Settings
-    OPENAI_API_KEY = os.getenv('OPENAI_API_KEY')
+    # Groq Settings
+    GROQ_API_KEY = os.getenv('GROQ_API_KEY')
+    GROQ_MODEL = os.getenv('GROQ_MODEL', 'llama-3.3-70b-versatile')
     
     # Flask Settings
     FLASK_ENV = os.getenv('FLASK_ENV', 'production')
@@ -26,7 +27,7 @@ class Config:
     @staticmethod
     def validate():
         """Validate required configuration"""
-        required = ['GITHUB_TOKEN', 'OPENAI_API_KEY']
+        required = ['GITHUB_TOKEN', 'GROQ_API_KEY']
         missing = [key for key in required if not getattr(Config, key)]
         
         if missing:
