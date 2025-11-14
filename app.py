@@ -19,7 +19,7 @@ def index():
     """Health check endpoint"""
     return jsonify({
         'status': 'running',
-        'service': 'CODEX AI Code Review Assistant',
+        'service': 'X-code AI Code Review Assistant',
         'version': '1.0.0'
     })
 
@@ -166,12 +166,12 @@ def health():
 if __name__ == '__main__':
     try:
         Config.validate()
-        print("✅ Configuration validated")
-        print(f"🚀 Starting CODEX AI Code Review Assistant on port {Config.PORT}")
+        print("Configuration validated")
+        print(f"Starting X-code AI Code Review Assistant on port {Config.PORT}")
         app.run(
             host='0.0.0.0',
             port=Config.PORT,
             debug=Config.FLASK_DEBUG
         )
     except Exception as e:
-        print(f"❌ Startup failed: {e}")
+        print(f"Startup failed: {e}")
