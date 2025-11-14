@@ -29,8 +29,8 @@ An intelligent GitHub-integrated bot that automatically reviews Pull Requests us
 
 1. **Clone the repository**
 ```bash
-git clone https://github.com/abhi3114-glitch/CODEX.git
-cd CODEX
+git clone https://github.com/abhi3114-glitch/X-CODE.git
+cd X-CODE
 ```
 
 2. **Install dependencies**
@@ -143,8 +143,8 @@ sudo apt install python3-pip nginx
 
 4. **Clone and setup**
 ```bash
-git clone https://github.com/abhi3114-glitch/CODEX.git
-cd CODEX
+git clone https://github.com/abhi3114-glitch/X-CODE.git
+cd X-CODE
 pip3 install -r requirements.txt
 ```
 
