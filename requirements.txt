@@ -1,0 +1,22 @@
+# Web Framework
+Flask==3.0.0
+gunicorn==21.2.0
+
+# GitHub Integration
+PyGithub==2.1.1
+requests==2.31.0
+
+# Static Analysis Tools
+pylint==3.0.3
+flake8==7.0.0
+bandit==1.7.5
+radon==6.0.1
+
+# LLM Integration
+langchain==0.1.0
+langchain-openai==0.0.2
+openai==1.6.1
+
+# Utilities
+python-dotenv==1.0.0
+cryptography==41.0.7

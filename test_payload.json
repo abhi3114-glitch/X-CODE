@@ -1,0 +1,27 @@
+{
+  "action": "opened",
+  "pull_request": {
+    "number": 1,
+    "title": "Test PR for CODEX",
+    "html_url": "https://github.com/test/repo/pull/1",
+    "diff_url": "https://github.com/test/repo/pull/1.diff",
+    "commits_url": "https://api.github.com/repos/test/repo/pulls/1/commits",
+    "base": {
+      "ref": "main"
+    },
+    "head": {
+      "ref": "feature-branch",
+      "sha": "abc123def456"
+    },
+    "user": {
+      "login": "testuser"
+    }
+  },
+  "repository": {
+    "full_name": "test/repo",
+    "name": "repo",
+    "owner": {
+      "login": "test"
+    }
+  }
+}
