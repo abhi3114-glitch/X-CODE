@@ -20,23 +20,29 @@ class WebhookHandler:
         """
         signature = request.headers.get('X-Hub-Signature-256')
         if not signature:
+            print("Warning: No signature provided")
             return False
         
         # Get secret
         secret = Config.GITHUB_WEBHOOK_SECRET
         if not secret:
+            print("Warning: No webhook secret configured")
             return False
         
         # Calculate expected signature
-        mac = hmac.new(
-            secret.encode(),
-            msg=request.data,
-            digestmod=hashlib.sha256
-        )
-        expected_signature = 'sha256=' + mac.hexdigest()
-        
-        # Compare signatures
-        return hmac.compare_digest(expected_signature, signature)
+        try:
+            mac = hmac.new(
+                secret.encode('utf-8'),
+                msg=request.data,
+                digestmod=hashlib.sha256
+            )
+            expected_signature = 'sha256=' + mac.hexdigest()
+            
+            # Compare signatures
+            return hmac.compare_digest(expected_signature, signature)
+        except Exception as e:
+            print(f"Signature verification error: {e}")
+            return False
     
     @staticmethod
     def parse_pull_request_event(payload: Dict[str, Any]) -> Optional[Dict[str, Any]]:
@@ -49,30 +55,39 @@ class WebhookHandler:
         Returns:
             Dictionary with PR information or None if invalid
         """
-        action = payload.get('action')
-        
-        # Only process opened and synchronized (updated) PRs
-        if action not in ['opened', 'synchronize']:
+        try:
+            action = payload.get('action')
+            
+            # Only process opened and synchronized (updated) PRs
+            if action not in ['opened', 'synchronize']:
+                return None
+            
+            pr = payload.get('pull_request', {})
+            repo = payload.get('repository', {})
+            
+            # Validate required fields
+            if not pr or not repo:
+                print("Warning: Missing PR or repository data in payload")
+                return None
+            
+            return {
+                'action': action,
+                'pr_number': pr.get('number'),
+                'pr_title': pr.get('title', 'Untitled'),
+                'pr_url': pr.get('html_url'),
+                'base_branch': pr.get('base', {}).get('ref', 'main'),
+                'head_branch': pr.get('head', {}).get('ref', 'unknown'),
+                'head_sha': pr.get('head', {}).get('sha'),
+                'repo_full_name': repo.get('full_name'),
+                'repo_owner': repo.get('owner', {}).get('login'),
+                'repo_name': repo.get('name'),
+                'author': pr.get('user', {}).get('login', 'unknown'),
+                'diff_url': pr.get('diff_url'),
+                'commits_url': pr.get('commits_url')
+            }
+        except Exception as e:
+            print(f"Error parsing PR event: {e}")
             return None
-        
-        pr = payload.get('pull_request', {})
-        repo = payload.get('repository', {})
-        
-        return {
-            'action': action,
-            'pr_number': pr.get('number'),
-            'pr_title': pr.get('title'),
-            'pr_url': pr.get('html_url'),
-            'base_branch': pr.get('base', {}).get('ref'),
-            'head_branch': pr.get('head', {}).get('ref'),
-            'head_sha': pr.get('head', {}).get('sha'),
-            'repo_full_name': repo.get('full_name'),
-            'repo_owner': repo.get('owner', {}).get('login'),
-            'repo_name': repo.get('name'),
-            'author': pr.get('user', {}).get('login'),
-            'diff_url': pr.get('diff_url'),
-            'commits_url': pr.get('commits_url')
-        }
     
     @staticmethod
     def should_review_file(file_path: str) -> bool:
@@ -91,9 +106,11 @@ class WebhookHandler:
         
         # Skip common non-code files
         skip_patterns = [
-            '.txt', '.json', '.yml', '.yaml',
+            '.md', '.txt', '.json', '.yml', '.yaml',
             '.lock', '.pyc', '__pycache__',
-            'requirements.txt', '.gitignore'
+            'requirements.txt', '.gitignore', '.env',
+            '.png', '.jpg', '.jpeg', '.gif', '.svg',
+            '.pdf', '.zip', '.tar', '.gz'
         ]
         
-        return not any(file_path.endswith(pattern) for pattern in skip_patterns)
+        return not any(file_path.endswith(pattern) or pattern in file_path for pattern in skip_patterns)

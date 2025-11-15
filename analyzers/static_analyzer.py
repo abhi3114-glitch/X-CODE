@@ -34,11 +34,12 @@ class StaticAnalyzer:
             return results
         
         # Create temporary file for analysis
-        with tempfile.NamedTemporaryFile(mode='w', suffix='.py', delete=False) as tmp:
-            tmp.write(file_content)
-            tmp_path = tmp.name
-        
+        tmp_path = None
         try:
+            with tempfile.NamedTemporaryFile(mode='w', suffix='.py', delete=False, encoding='utf-8') as tmp:
+                tmp.write(file_content)
+                tmp_path = tmp.name
+            
             # Run pylint for style issues
             results['style_issues'] = self._run_pylint(tmp_path)
             
@@ -56,10 +57,15 @@ class StaticAnalyzer:
                 'complexity_count': len(results['complexity_issues'])
             }
             
+        except Exception as e:
+            print(f"Error in static analysis: {e}")
         finally:
             # Clean up temporary file
-            if os.path.exists(tmp_path):
-                os.unlink(tmp_path)
+            if tmp_path and os.path.exists(tmp_path):
+                try:
+                    os.unlink(tmp_path)
+                except Exception:
+                    pass
         
         return results
     
@@ -84,8 +90,14 @@ class StaticAnalyzer:
                     'severity': self._map_pylint_severity(issue.get('type', ''))
                 } for issue in issues if issue.get('line')]
             
-        except (subprocess.TimeoutExpired, json.JSONDecodeError, FileNotFoundError):
-            pass
+        except subprocess.TimeoutExpired:
+            print("Pylint timeout")
+        except json.JSONDecodeError as e:
+            print(f"Pylint JSON parse error: {e}")
+        except FileNotFoundError:
+            print("Pylint not found - install with: pip install pylint")
+        except Exception as e:
+            print(f"Pylint error: {e}")
         
         return []
     
@@ -111,8 +123,14 @@ class StaticAnalyzer:
                     'cwe': issue.get('issue_cwe', {}).get('id', 'N/A')
                 } for issue in issues]
             
-        except (subprocess.TimeoutExpired, json.JSONDecodeError, FileNotFoundError):
-            pass
+        except subprocess.TimeoutExpired:
+            print("Bandit timeout")
+        except json.JSONDecodeError as e:
+            print(f"Bandit JSON parse error: {e}")
+        except FileNotFoundError:
+            print("Bandit not found - install with: pip install bandit")
+        except Exception as e:
+            print(f"Bandit error: {e}")
         
         return []
     
@@ -144,8 +162,14 @@ class StaticAnalyzer:
                 
                 return issues
             
-        except (subprocess.TimeoutExpired, json.JSONDecodeError, FileNotFoundError):
-            pass
+        except subprocess.TimeoutExpired:
+            print("Radon timeout")
+        except json.JSONDecodeError as e:
+            print(f"Radon JSON parse error: {e}")
+        except FileNotFoundError:
+            print("Radon not found - install with: pip install radon")
+        except Exception as e:
+            print(f"Radon error: {e}")
         
         return []
     

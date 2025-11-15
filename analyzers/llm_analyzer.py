@@ -1,5 +1,6 @@
 from typing import Dict, List, Any
 import json
+import re
 from groq import Groq
 from config import Config
 
@@ -48,41 +49,67 @@ Be concise and actionable. Format your response as JSON with this structure:
             # Prepare static issues summary
             static_summary = self._format_static_issues(static_issues)
             
+            # Truncate code if too long
+            code_snippet = code[:3000] if len(code) > 3000 else code
+            
             # Prepare user message
-            user_message = f"File: {file_path}\n\nCode:\n{code[:3000]}\n\nStatic Analysis Issues:\n{static_summary}"
+            user_message = f"""File: {file_path}
+
+Code:
+{code_snippet}
+
+Static Analysis Issues:
+{static_summary}
+
+Please analyze this code and provide suggestions in JSON format."""
             
-            # Get LLM response
-            chat_completion = self.client.chat.completions.create(
-                messages=[
-                    {
-                        "role": "system",
-                        "content": self.system_prompt
-                    },
-                    {
-                        "role": "user",
-                        "content": user_message
-                    }
-                ],
-                model=self.model,
-                temperature=0.3,
-                max_tokens=2000
-            )
+            # Get LLM response with retry logic
+            max_retries = 2
+            for attempt in range(max_retries):
+                try:
+                    chat_completion = self.client.chat.completions.create(
+                        messages=[
+                            {
+                                "role": "system",
+                                "content": self.system_prompt
+                            },
+                            {
+                                "role": "user",
+                                "content": user_message
+                            }
+                        ],
+                        model=self.model,
+                        temperature=0.3,
+                        max_tokens=2000
+                    )
+                    
+                    # Parse response
+                    response_content = chat_completion.choices[0].message.content
+                    
+                    # Extract and parse JSON
+                    result = self._extract_json(response_content)
+                    
+                    if result:
+                        return {
+                            'issues': result.get('issues', []),
+                            'overall_feedback': result.get('overall_feedback', ''),
+                            'success': True
+                        }
+                    else:
+                        print(f"Failed to parse LLM response (attempt {attempt + 1})")
+                        if attempt < max_retries - 1:
+                            continue
+                        
+                except Exception as e:
+                    print(f"LLM API error (attempt {attempt + 1}): {e}")
+                    if attempt < max_retries - 1:
+                        continue
             
-            # Parse response
-            response_content = chat_completion.choices[0].message.content
-            
-            # Extract JSON from response (handle markdown code blocks)
-            if "```json" in response_content:
-                response_content = response_content.split("```json")[1].split("```")[0].strip()
-            elif "```" in response_content:
-                response_content = response_content.split("```")[1].split("```")[0].strip()
-            
-            result = json.loads(response_content)
-            
+            # If all retries failed
             return {
-                'issues': result.get('issues', []),
-                'overall_feedback': result.get('overall_feedback', ''),
-                'success': True
+                'issues': [],
+                'overall_feedback': 'LLM analysis failed after retries',
+                'success': False
             }
             
         except Exception as e:
@@ -92,6 +119,33 @@ Be concise and actionable. Format your response as JSON with this structure:
                 'overall_feedback': f'LLM analysis failed: {str(e)}',
                 'success': False
             }
+    
+    def _extract_json(self, response_content: str) -> Dict[str, Any]:
+        """Extract JSON from response, handling markdown code blocks"""
+        try:
+            # Try direct JSON parse first
+            return json.loads(response_content)
+        except json.JSONDecodeError:
+            pass
+        
+        # Try extracting from markdown code blocks
+        patterns = [
+            r'```json\s*(.*?)\s*```',
+            r'```\s*(.*?)\s*```',
+            r'\{.*\}',
+        ]
+        
+        for pattern in patterns:
+            match = re.search(pattern, response_content, re.DOTALL)
+            if match:
+                try:
+                    json_str = match.group(1) if pattern.startswith('```') else match.group(0)
+                    return json.loads(json_str)
+                except json.JSONDecodeError:
+                    continue
+        
+        print(f"Could not extract JSON from response: {response_content[:200]}")
+        return None
     
     def generate_auto_fix(self, code: str, issue: Dict[str, Any]) -> str:
         """
@@ -110,7 +164,7 @@ Line: {issue.get('line', 'N/A')}
 Issue: {issue.get('message', '')}
 
 Original code:
-{code}
+{code[:1000]}
 
 Generate a unified diff format fix. Be precise and minimal."""
 
@@ -167,17 +221,17 @@ Format as JSON array."""
             )
             
             response_content = chat_completion.choices[0].message.content
+            result = self._extract_json(response_content)
             
-            # Extract JSON from response
-            if "```json" in response_content:
-                response_content = response_content.split("```json")[1].split("```")[0].strip()
-            elif "```" in response_content:
-                response_content = response_content.split("```")[1].split("```")[0].strip()
+            if result and isinstance(result, list):
+                return result
+            elif result and isinstance(result, dict):
+                return result.get('patterns', [])
             
-            patterns = json.loads(response_content)
-            return patterns if isinstance(patterns, list) else []
+            return []
             
-        except Exception:
+        except Exception as e:
+            print(f"Anti-pattern detection error: {e}")
             return []
     
     @staticmethod
@@ -188,10 +242,9 @@ Format as JSON array."""
         
         formatted = []
         for issue in issues[:10]:  # Limit to top 10 issues
-            formatted.append(
-                f"- Line {issue.get('line', 'N/A')}: "
-                f"{issue.get('type', 'unknown')} - "
-                f"{issue.get('message', 'No message')}"
-            )
+            line = issue.get('line', 'N/A')
+            issue_type = issue.get('type', 'unknown')
+            message = issue.get('message', 'No message')
+            formatted.append(f"- Line {line}: {issue_type} - {message}")
         
         return "\n".join(formatted)
