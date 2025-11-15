@@ -2,12 +2,14 @@
 
 An intelligent GitHub-integrated bot that automatically reviews Pull Requests using Groq LLMs and static analysis tools. X-code provides inline comments with suggestions, detects anti-patterns, identifies security vulnerabilities, and offers auto-fix diffs for common issues.
 
+> **Latest Update (v2.0)**: Fixed critical comment posting issues, improved error handling, added comprehensive logging, and enhanced dependency compatibility.
+
 ## Features
 
 - **Automatic PR Review**: Triggers on every PR open/update
 - **Multi-Layer Analysis**:
   - Style checking with Pylint
-  - Security scanning with Bandit
+  - Security scanning with Bandit  
   - Complexity analysis with Radon
   - AI-powered insights with Groq (llama-3.3-70b-versatile)
 - **Inline Comments**: Posts suggestions directly on code lines
@@ -15,6 +17,16 @@ An intelligent GitHub-integrated bot that automatically reviews Pull Requests us
 - **Auto-Fix Suggestions**: Provides diff patches for simple issues
 - **Comprehensive Reports**: Summary with severity breakdown
 - **Cost-Effective**: Uses Groq API for affordable LLM inference
+- **Robust Error Handling**: Graceful fallbacks and detailed logging
+
+## What's New in v2.0
+
+- **Fixed GitHub API Integration**: Resolved comment posting issues
+- **Enhanced Error Handling**: Automatic fallback to issue comments if inline comments fail
+- **Improved Logging**: Detailed console output for debugging
+- **Dependency Fixes**: Resolved Groq/httpx compatibility issues
+- **Test Scripts**: Added comprehensive permission and connection tests
+- **Better Documentation**: Complete setup guides and troubleshooting
 
 ## Quick Start
 
@@ -22,7 +34,7 @@ An intelligent GitHub-integrated bot that automatically reviews Pull Requests us
 
 - Python 3.8+
 - GitHub account with repository access
-- Groq API key (free tier available at https://console.groq.com)
+- Groq API key (free tier: https://console.groq.com)
 - GitHub Personal Access Token
 
 ### Installation
@@ -33,174 +45,148 @@ git clone https://github.com/abhi3114-glitch/X-CODE.git
 cd X-CODE
 ```
 
-2. **Install dependencies**
+2. **Create virtual environment**
 ```bash
-pip install -r requirements.txt
-```
+python -m venv venv
 
-3. **Configure environment variables**
-```bash
-cp .env.example .env
-```
+# Windows
+venv\Scripts\activate
 
-Edit `.env` and add your credentials:
-```env
-GITHUB_TOKEN=your_github_personal_access_token
-GITHUB_WEBHOOK_SECRET=your_webhook_secret
-GROQ_API_KEY=your_groq_api_key
-GROQ_MODEL=llama-3.3-70b-versatile
-```
-
-4. **Run the application**
-```bash
-python app.py
-```
-
-The server will start on `http://localhost:5000`
-
-## GitHub Setup
-
-### 1. Create Personal Access Token
-
-1. Go to GitHub Settings → Developer settings → Personal access tokens
-2. Generate new token (classic)
-3. Select scopes:
-   - `repo` (Full control of private repositories)
-   - `write:discussion` (Read and write team discussions)
-4. Copy the token to your `.env` file
-
-### 2. Get Groq API Key
-
-1. Visit https://console.groq.com
-2. Sign up for a free account
-3. Navigate to API Keys section
-4. Create a new API key
-5. Copy the key to your `.env` file
-
-### 3. Configure Webhook
-
-1. Go to your repository → Settings → Webhooks
-2. Click "Add webhook"
-3. Configure:
-   - **Payload URL**: `https://your-domain.com/webhook`
-   - **Content type**: `application/json`
-   - **Secret**: Generate a random string and add to `.env`
-   - **Events**: Select "Pull requests"
-4. Save webhook
-
-### 4. Expose Local Server (Development)
-
-Use ngrok to expose your local server:
-```bash
-ngrok http 5000
-```
-
-Copy the HTTPS URL to your webhook configuration.
-
-## Deployment
-
-### Option 1: Heroku
-
-1. **Install Heroku CLI**
-```bash
-curl https://cli-assets.heroku.com/install.sh | sh
-```
-
-2. **Create Heroku app**
-```bash
-heroku create xcode-review-bot
-```
-
-3. **Set environment variables**
-```bash
-heroku config:set GITHUB_TOKEN=your_token
-heroku config:set GROQ_API_KEY=your_key
-heroku config:set GITHUB_WEBHOOK_SECRET=your_secret
-```
-
-4. **Deploy**
-```bash
-git push heroku main
-```
-
-5. **Update webhook URL**
-   - Use your Heroku app URL: `https://xcode-review-bot.herokuapp.com/webhook`
-
-### Option 2: AWS EC2
-
-1. **Launch EC2 instance** (Ubuntu 20.04)
-
-2. **SSH into instance**
-```bash
-ssh -i your-key.pem ubuntu@your-ec2-ip
+# Mac/Linux
+source venv/bin/activate
 ```
 
 3. **Install dependencies**
 ```bash
-sudo apt update
-sudo apt install python3-pip nginx
+pip install -r requirements.txt
 ```
 
-4. **Clone and setup**
+4. **Configure environment variables**
 ```bash
-git clone https://github.com/abhi3114-glitch/X-CODE.git
-cd X-CODE
-pip3 install -r requirements.txt
+cp .env.example .env
+# Edit .env with your credentials
 ```
 
-5. **Configure environment**
+Example `.env`:
+```env
+GITHUB_TOKEN=ghp_your_github_token_here
+GITHUB_WEBHOOK_SECRET=your_random_secret_string
+GROQ_API_KEY=gsk_your_groq_api_key_here
+GROQ_MODEL=llama-3.3-70b-versatile
+PORT=5000
+```
+
+5. **Test your setup**
 ```bash
-nano .env
-# Add your credentials
+# Test GitHub connection
+python test_github.py
+
+# Test permissions (comprehensive)
+python test_permission.py
+
+# Test comment posting
+python test_comment.py your-username/your-repo 1
 ```
 
-6. **Run with Gunicorn**
+6. **Run the application**
 ```bash
-gunicorn -w 4 -b 0.0.0.0:5000 app:app
+python app.py
 ```
 
-7. **Setup Nginx reverse proxy** (optional)
+Server starts on `http://localhost:5000`
 
-### Option 3: Docker
+## Getting API Keys
 
-1. **Create Dockerfile**
-```dockerfile
-FROM python:3.9-slim
+### GitHub Personal Access Token
 
-WORKDIR /app
-COPY requirements.txt .
-RUN pip install -r requirements.txt
+1. Go to: https://github.com/settings/tokens
+2. Click "Generate new token (classic)"
+3. Give it a name: `X-code-bot`
+4. Select scopes:
+   - **repo** (Full control of repositories)
+   - **write:discussion** (Read and write discussions)
+5. Click "Generate token"
+6. Copy and save in `.env` as `GITHUB_TOKEN`
 
-COPY . .
+### Groq API Key
 
-EXPOSE 5000
-CMD ["gunicorn", "-w", "4", "-b", "0.0.0.0:5000", "app:app"]
-```
+1. Visit: https://console.groq.com
+2. Sign up (free account)
+3. Navigate to API Keys section
+4. Click "Create API Key"
+5. Copy and save in `.env` as `GROQ_API_KEY`
 
-2. **Build and run**
+## GitHub Webhook Setup
+
+### 1. Expose Your Server
+
+**For Development (ngrok):**
 ```bash
-docker build -t xcode-bot .
-docker run -p 5000:5000 --env-file .env xcode-bot
+# In a separate terminal
+ngrok http 5000
+
+# Copy the HTTPS URL (e.g., https://abc123.ngrok.io)
 ```
+
+**For Production:** Deploy to Heroku, AWS, or Docker (see Deployment section)
+
+### 2. Configure Webhook
+
+1. Go to your repository -> Settings -> Webhooks -> Add webhook
+2. Configure:
+   - **Payload URL**: `https://your-domain.com/webhook`
+   - **Content type**: `application/json`
+   - **Secret**: Same as `GITHUB_WEBHOOK_SECRET` in `.env`
+   - **Events**: Select "Let me select individual events"
+     - Check: Pull requests
+     - Uncheck all others
+   - **Active**: Enabled
+3. Click "Add webhook"
+
+You should see a green checkmark if successful.
 
 ## Usage
 
-Once configured, X-code automatically reviews PRs:
+Once configured, X-code works automatically:
 
-1. **Open a Pull Request** in your repository
-2. **X-code triggers** and analyzes the changes
-3. **Review posted** with:
-   - Inline comments on specific lines
+1. **Create or update a Pull Request**
+2. **X-code analyzes** the changes (10-30 seconds)
+3. **Review appears** with:
+   - Inline comments on specific code lines
    - Overall summary
-   - Severity breakdown
+   - Issue breakdown by severity
    - Auto-fix suggestions
 
-### Example Review Comment
+### Example Review
 
+```markdown
+X-code AI Code Review
+
+PR: Fix user authentication
+Author: @john-doe
+Files Reviewed: 3
+Total Issues Found: 5
+
+Summary by File
+
+**auth.py**: 3 issues found
+**models.py**: 2 issues found
+
+Issue Breakdown
+
+- High: 1
+- Medium: 3
+- Low: 1
+
+Powered by Groq Llama 3.3 70B + Static Analysis Tools
 ```
-SECURITY (high)
 
-Potential SQL injection vulnerability detected.
+### Example Inline Comment
+
+```markdown
+[SECURITY] HIGH
+
+Potential SQL injection vulnerability detected on line 45.
 
 Suggestion: Use parameterized queries instead of string concatenation.
 
@@ -225,118 +211,335 @@ Edit `config.py` or use environment variables:
 | `MAX_FILES_TO_REVIEW` | Maximum files per PR | 20 |
 | `MAX_LINES_PER_FILE` | Maximum lines to analyze | 500 |
 | `ENABLE_AUTO_FIX` | Enable auto-fix suggestions | True |
+| `PORT` | Server port | 5000 |
 
-## Available Groq Models
+## Deployment
 
-X-code uses **llama-3.3-70b-versatile** by default, which offers:
-- 1,000 requests per minute (RPM)
-- 500,000 tokens per minute (TPM)
-- Excellent code understanding and generation
-- Cost-effective alternative to GPT-4
+### Option 1: Heroku
 
-Other available models:
-- `llama-3.1-8b-instant` - Faster, lower capacity
-- `meta-llama/llama-4-maverick-17b-128e-instruct` - Balanced option
-- `qwen/qwen3-32b` - Alternative architecture
+```bash
+# Install Heroku CLI
+curl https://cli-assets.heroku.com/install.sh | sh
 
-## Architecture
+# Login
+heroku login
 
+# Create app
+heroku create xcode-review-bot
+
+# Set environment variables
+heroku config:set GITHUB_TOKEN=your_token
+heroku config:set GROQ_API_KEY=your_key
+heroku config:set GITHUB_WEBHOOK_SECRET=your_secret
+
+# Deploy
+git push heroku main
+
+# Update GitHub webhook URL to:
+# https://xcode-review-bot.herokuapp.com/webhook
 ```
-┌─────────────┐
-│   GitHub    │
-│  Webhook    │
-└──────┬──────┘
-       │
-       ▼
-┌─────────────┐
-│   Flask     │
-│  Endpoint   │
-└──────┬──────┘
-       │
-       ├──────────────┐
-       ▼              ▼
-┌─────────────┐  ┌─────────────┐
-│   Static    │  │  Groq LLM   │
-│  Analysis   │  │  Analysis   │
-│             │  │             │
-│ • Pylint    │  │ • Llama 3.3 │
-│ • Bandit    │  │   70B       │
-│ • Radon     │  │             │
-└──────┬──────┘  └──────┬──────┘
-       │                │
-       └────────┬───────┘
-                ▼
-         ┌─────────────┐
-         │   GitHub    │
-         │     API     │
-         │  (Comment)  │
-         └─────────────┘
+
+### Option 2: Docker
+
+```dockerfile
+FROM python:3.9-slim
+
+WORKDIR /app
+COPY requirements.txt .
+RUN pip install -r requirements.txt
+
+COPY . .
+
+EXPOSE 5000
+CMD ["gunicorn", "-w", "4", "-b", "0.0.0.0:5000", "app:app"]
+```
+
+```bash
+# Build and run
+docker build -t xcode-bot .
+docker run -p 5000:5000 --env-file .env xcode-bot
+```
+
+### Option 3: AWS EC2
+
+```bash
+# SSH into instance
+ssh -i your-key.pem ubuntu@your-ec2-ip
+
+# Install dependencies
+sudo apt update
+sudo apt install python3-pip nginx
+
+# Clone and setup
+git clone https://github.com/abhi3114-glitch/X-CODE.git
+cd X-CODE
+pip3 install -r requirements.txt
+
+# Configure .env
+nano .env
+
+# Run with Gunicorn
+gunicorn -w 4 -b 0.0.0.0:5000 app:app
 ```
 
 ## Testing
 
-Test the webhook locally:
+### Test Scripts Included
+
+1. **test_github.py** - Test GitHub API connection
+```bash
+python test_github.py
+```
+
+2. **test_permission.py** - Comprehensive permission test
+```bash
+python test_permission.py
+```
+
+3. **test_comment.py** - Test comment posting
+```bash
+python test_comment.py owner/repo pr_number
+```
+
+### Manual Testing
 
 ```bash
+# Test webhook locally
 curl -X POST http://localhost:5000/webhook \
   -H "Content-Type: application/json" \
   -H "X-GitHub-Event: pull_request" \
   -d @test_payload.json
+
+# Test health endpoint
+curl http://localhost:5000/health
+
+# Test GitHub connection endpoint
+curl http://localhost:5000/test-github
 ```
 
-## Contributing
+## Architecture
 
-Contributions welcome! Please:
-
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Submit a pull request
-
-## License
-
-MIT License - feel free to use in your projects!
-
-## Links
-
-- **Repository**: https://github.com/abhi3114-glitch/CODEX
-- **Issues**: https://github.com/abhi3114-glitch/CODEX/issues
-- **Groq Console**: https://console.groq.com
-- **Documentation**: [GitHub Webhooks](https://docs.github.com/en/developers/webhooks-and-events/webhooks)
-
-## Tips
-
-- **Rate Limits**: Be aware of GitHub API rate limits (5000 requests/hour)
-- **Cost Management**: Groq offers generous free tier limits
-- **Security**: Never commit `.env` file with credentials
-- **Performance**: Use task queues (Celery) for production
-- **Scaling**: Consider serverless (AWS Lambda) for high traffic
+```
+GitHub Webhook
+      |
+      v
+Flask Server (/webhook)
+      |
+      |-----> Signature Verification
+      |
+      v
+PR Event Parser
+      |
+      v
+File Fetcher (GitHub API)
+      |
+      |-----> Static Analysis
+      |       - Pylint (style)
+      |       - Bandit (security)
+      |       - Radon (complexity)
+      |
+      |-----> LLM Analysis
+      |       - Groq API
+      |       - Llama 3.3 70B
+      |
+      v
+Results Aggregator
+      |
+      v
+GitHub API
+      |
+      |-----> Post Review Comments
+      |-----> Post Issue Comment (fallback)
+```
 
 ## Troubleshooting
 
-### Webhook not triggering
-- Check webhook delivery in GitHub settings
-- Verify signature validation
-- Check server logs
+### Issue: Webhook not triggering
 
-### Analysis failing
-- Verify Groq API key
-- Check file size limits
-- Review error logs
+**Solution:**
+- Check ngrok is running
+- Verify webhook URL in GitHub settings
+- Check webhook delivery logs in GitHub
+- Ensure webhook is marked as "Active"
 
-### Comments not posting
-- Verify GitHub token permissions
-- Check PR number and repository access
-- Review GitHub API rate limits
+### Issue: "Invalid signature" error
 
-## Why Groq?
+**Solution:**
+- Verify `GITHUB_WEBHOOK_SECRET` in `.env` matches GitHub webhook secret
+- Check for extra spaces or quotes in `.env` file
 
-- **Fast**: Ultra-low latency inference
-- **Cost-Effective**: Generous free tier
-- **Powerful**: State-of-the-art open models
-- **Reliable**: High uptime and availability
-- **Developer-Friendly**: Simple API, great docs
+### Issue: "403 Forbidden" or "401 Unauthorized"
+
+**Solution:**
+- Regenerate GitHub token with correct scopes:
+  - repo (all)
+  - write:discussion
+- Update token in `.env` file
+
+### Issue: Comments not posting
+
+**Solution:**
+- Run `python test_comment.py owner/repo pr_number`
+- Check terminal logs for detailed error messages
+- Verify token has `write:discussion` scope
+- Check GitHub API rate limits
+
+### Issue: "TypeError: Client.__init__() got an unexpected keyword argument 'proxies'"
+
+**Solution:**
+```bash
+# Fix Groq dependency
+pip uninstall groq httpx httpcore -y
+pip install httpx==0.27.2 httpcore==1.0.6 groq==0.11.0
+```
+
+### Issue: LLM analysis failing
+
+**Solution:**
+- Verify Groq API key is correct
+- Check Groq console for rate limits: https://console.groq.com
+- Bot will still work with static analysis only
+
+### Viewing Logs
+
+All operations are logged to console. Watch the terminal where `python app.py` is running for detailed information:
+
+```
+================================================================================
+WEBHOOK RECEIVED
+================================================================================
+
+Headers:
+  X-GitHub-Event: pull_request
+  X-Hub-Signature-256: sha256:abc123...
+
+Verifying signature...
+Signature verified!
+
+Event Type: pull_request
+Action: opened
+
+Processing PR:
+  Repo: owner/repo
+  PR #: 1
+  Title: Test PR
+  Author: username
+
+STARTING REVIEW
+Fetching changed files...
+Found 2 changed files
+
+[1/2] Analyzing: file1.py
+  File size: 45 lines
+  Running static analysis...
+  Found 3 static issues
+  Running LLM analysis...
+  Found 2 LLM issues
+
+ANALYSIS COMPLETE
+  Total files analyzed: 2
+  Total issues found: 5
+
+POSTING REVIEW TO GITHUB
+Review posted successfully!
+
+================================================================================
+WEBHOOK PROCESSING COMPLETE
+================================================================================
+```
+
+## Available Groq Models
+
+X-code uses **llama-3.3-70b-versatile** by default:
+
+- **RPM**: 1,000 requests per minute
+- **TPM**: 500,000 tokens per minute
+- **Context**: 128K tokens
+- **Performance**: Excellent for code analysis
+- **Cost**: Free tier available
+
+Alternative models:
+- `llama-3.1-8b-instant` - Faster, lower capacity
+- `mixtral-8x7b-32768` - Good for complex analysis
+
+## API Rate Limits
+
+### GitHub API
+- 5,000 requests per hour (authenticated)
+- Check remaining: `curl http://localhost:5000/test-github`
+
+### Groq API  
+- 1,000 requests per minute
+- 500,000 tokens per minute
+- Monitor: https://console.groq.com
+
+## Security Best Practices
+
+1. **Never commit `.env` file** - Already in `.gitignore`
+2. **Use strong webhook secrets** - Generate with:
+   ```bash
+   python -c "import secrets; print(secrets.token_hex(32))"
+   ```
+3. **Rotate tokens regularly** - Every 90 days recommended
+4. **Use repository-specific tokens** when possible
+5. **Monitor webhook delivery logs** for suspicious activity
+
+## Contributing
+
+Contributions are welcome! Please:
+
+1. Fork the repository
+2. Create a feature branch: `git checkout -b feature-name`
+3. Make your changes
+4. Run tests: `python test_permission.py`
+5. Commit: `git commit -m "Add feature"`
+6. Push: `git push origin feature-name`
+7. Submit a pull request
+
+## Known Limitations
+
+- Only reviews Python files (`.py` extension)
+- Maximum 20 files per PR (configurable)
+- Maximum 500 lines per file (configurable)
+- Inline comments limited to 20 per PR (GitHub API limit)
+- No memory between reviews (stateless)
+
+## Roadmap
+
+- [ ] Support for more languages (JavaScript, Java, Go)
+- [ ] Custom rule configuration
+- [ ] Integration with CI/CD pipelines
+- [ ] Slack/Discord notifications
+- [ ] Caching for improved performance
+- [ ] Dashboard for review analytics
+
+## License
+
+MIT License - see LICENSE file for details
+
+## Support
+
+- **Issues**: https://github.com/abhi3114-glitch/X-CODE/issues
+- **Discussions**: https://github.com/abhi3114-glitch/X-CODE/discussions
+- **Documentation**: https://github.com/abhi3114-glitch/X-CODE/wiki
+
+## Acknowledgments
+
+- **Groq** - For providing fast, affordable LLM inference
+- **GitHub** - For comprehensive API and webhook support
+- **Pylint, Bandit, Radon** - For excellent static analysis tools
+- **Flask** - For simple, powerful web framework
+
+## Links
+
+- **Repository**: https://github.com/abhi3114-glitch/X-CODE
+- **Groq Console**: https://console.groq.com
+- **GitHub Webhooks Docs**: https://docs.github.com/en/webhooks
+- **Pylint Docs**: https://pylint.readthedocs.io
+- **Bandit Docs**: https://bandit.readthedocs.io
 
 ---
 
 **Built with Python, Flask, Groq, and Llama 3.3 70B**
+
+*X-code v2.0 - Making code reviews faster, smarter, and more consistent*
