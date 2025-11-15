@@ -91,7 +91,7 @@ class WebhookHandler:
         
         # Skip common non-code files
         skip_patterns = [
-            '.md', '.txt', '.json', '.yml', '.yaml',
+            '.txt', '.json', '.yml', '.yaml',
             '.lock', '.pyc', '__pycache__',
             'requirements.txt', '.gitignore'
         ]
